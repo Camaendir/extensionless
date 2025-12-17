@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "extensionless",
+	"name": "Extensionless Links",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"minAppVersion": "1.7.4",
+	"description": "Overwrites the Obsidian Link Resolver to allow for links without extensions. #no extension #noextension",
+	"author": "Camaendir",
+	"authorUrl": "https://github.com/camaendir",
+	"fundingUrl": "https://buymeacoffee.com/camaendir",
 	"isDesktopOnly": false
 }

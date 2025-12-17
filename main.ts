@@ -1,85 +1,134 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin, TAbstractFile } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
+interface ExtensionlessSettings {
+	enable: boolean;
+	markdownFirst: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: ExtensionlessSettings = {
+	enable: true,
+	markdownFirst: true
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+
+export default class ExtensionlessPlugin extends Plugin {
+	settings: ExtensionlessSettings = DEFAULT_SETTINGS;
+
+	overwrite_getLinkpathDest(link: string, source: string){
+
+		var basename = (path: string) => {
+            var t = path.lastIndexOf("/");
+            return -1 === t ? path : path.slice(t + 1);
+		};
+
+		var	dirname = (path: string) => {
+			var t = path.lastIndexOf("/");
+			return -1 === t ? "" : path.slice(0, t);
+		};
+
+		var comparison_function = (file1: TAbstractFile, file2: TAbstractFile) => {
+			return file1.path.length - file2.path.length;
+		}
+
+		var mygetLinkpathDest = (link:string, sourceFile: string) => {
+			if ("" === link && sourceFile && (f = this.app.vault.getAbstractFileByPath(sourceFile)) !== null)
+				return [f];
+			var workingLink = link.toLowerCase();
+			var tmpFileLink = basename(workingLink);
+
+			//@ts-ignore
+			var fileResult = this.app.metadataCache.uniqueFileLookup.get(tmpFileLink);
+			
+			if (!fileResult)
+				return [];
+
+			if (tmpFileLink === workingLink && 1 === fileResult.length)
+				return fileResult.slice();
+			var sourceDirName = dirname(sourceFile).toLowerCase();
+			if (workingLink.startsWith("./") || workingLink.startsWith("../")) {
+				if (workingLink.startsWith("./../") && (workingLink = workingLink.substr(2)),
+				workingLink.startsWith("./"))
+					"" !== sourceDirName && (sourceDirName += "/"),
+					workingLink = sourceDirName + workingLink.substring(2);
+				else {
+					for (; workingLink.startsWith("../"); )
+						workingLink = workingLink.substr(3),
+						sourceDirName = dirname(sourceDirName);
+					"" !== sourceDirName && (sourceDirName += "/"),
+					workingLink = sourceDirName + workingLink
+				}
+				for (var a = 0, s = fileResult; a < s.length; a++) {
+					if ((m = (f = s[a]).path.toLowerCase()) === workingLink)
+						return [f]
+				}
+			}
+			workingLink.startsWith("/") && (workingLink = workingLink.substr(1));
+			for (var l = 0, c = fileResult; l < c.length; l++) {
+				if ((m = (f = c[l]).path.toLowerCase()) === workingLink)
+					return [f]
+			}
+			if (link.startsWith("/"))
+				return [];
+			for (var u = [], h = [], p = 0, d = fileResult; p < d.length; p++) {
+				var f, m;
+				(m = (f = d[p]).path.toLowerCase()).endsWith(workingLink) && (m.startsWith(sourceDirName) ? u.push(f) : h.push(f))
+			}
+			return u.sort(comparison_function),
+			h.sort(comparison_function),
+			u.concat(h)
+		}
+
+
+		if (this.settings === undefined){
+			this.settings = DEFAULT_SETTINGS;
+		}
+
+		if (!this.settings.enable){
+			//@ts-ignore
+			return this.app.metadataCache.getLinkpathDest_old(link, source);
+		}
+
+		if (this.settings.markdownFirst){
+
+			// see above
+			//@ts-ignore
+			const original_result = this.app.metadataCache.getLinkpathDest_old(link, source);
+
+			if (!Array.isArray(original_result) || original_result.length == 0){
+				return mygetLinkpathDest(link, source);
+			}
+			return original_result;
+
+		}else{
+
+			const my_result = mygetLinkpathDest(link, source);
+
+			if (!Array.isArray(my_result) || my_result.length == 0){
+				// see above
+				//@ts-ignore
+				return this.app.metadataCache.getLinkpathDest_old(link, source);
+			}
+			return my_result;
+
+		}
+	}
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		// see above
+		//@ts-ignore
+		this.app.metadataCache.getLinkpathDest_old = this.app.metadataCache.getLinkpathDest;
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, _view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		// see above
+		//@ts-ignore
+		this.app.metadataCache.getLinkpathDest = this.overwrite_getLinkpathDest;
 	}
 
 	onunload() {
-
+		// see above
+		//@ts-ignore
+		this.app.metadataCache.getLinkpathDest = this.app.metadataCache.getLinkpathDest_old
 	}
 
 	async loadSettings() {
@@ -88,47 +137,5 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 }
