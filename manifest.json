@@ -3,7 +3,7 @@
 	"name": "Extensionless Links",
 	"version": "1.0.0",
 	"minAppVersion": "1.7.4",
-	"description": "Overwrites the Obsidian Link Resolver to allow for links without extensions. #no extension #noextension",
+	"description": "Overwrites the Default Link Resolver to allow for links without extensions.",
 	"author": "Camaendir",
 	"authorUrl": "https://github.com/camaendir",
 	"fundingUrl": "https://buymeacoffee.com/camaendir",

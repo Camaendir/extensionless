@@ -1,7 +1,7 @@
 {
 	"name": "extensionless",
 	"version": "1.0.0",
-	"description": "Overwrites the Obsidian Link Resolver to allow for links without extensions. #no extension #noextension",
+	"description": "Overwrites the Default Link Resolver to allow for links without extensions.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
