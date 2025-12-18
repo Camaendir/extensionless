@@ -7,6 +7,6 @@ Tested on MacOS and Linux.
 
 ## ToDos
 
-- [ ] Proper settings
+- [x] Proper settings
   - global enable/disable
   - markdown first / markdown last
