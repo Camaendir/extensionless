@@ -1,18 +1,13 @@
-import { App, Plugin, PluginSettingTab, Setting, TAbstractFile } from 'obsidian';
+import { Plugin, TAbstractFile } from 'obsidian';
+import { DEFAULT_SETTINGS, ExtensionlessSettings, ExtensionlessSettingsTab } from './settings';
 
-interface ExtensionlessSettings {
-	enable: boolean;
-	markdownFirst: boolean;
-}
-
-const DEFAULT_SETTINGS: ExtensionlessSettings = {
-	enable: true,
-	markdownFirst: true
-}
-
+/*
+ * There are some @ts-ignore in this file.
+ * This is because this plugin accesses function of the MetadataCache, that are not defined in the typescript annotations.
+ */
 
 export default class ExtensionlessPlugin extends Plugin {
-	settings: ExtensionlessSettings = DEFAULT_SETTINGS;
+	settings: ExtensionlessSettings;
 
 	basename(path: string) {
 		const t = path.lastIndexOf("/");
@@ -24,10 +19,6 @@ export default class ExtensionlessPlugin extends Plugin {
 		return -1 === t ? "" : path.slice(0, t);
 	}
 
-	comparison_function(file1: TAbstractFile, file2: TAbstractFile) {
-		return file1.path.length - file2.path.length;
-	}
-
 	mygetLinkpathDest(link:string, sourceFile: string) {
 		let f;
 		if ("" === link && sourceFile && (f = this.app.vault.getAbstractFileByPath(sourceFile)) !== null)
@@ -35,6 +26,7 @@ export default class ExtensionlessPlugin extends Plugin {
 		let workingLink = link.toLowerCase();
 		const tmpFileLink = this.basename(workingLink);
 
+		// see above
 		//@ts-ignore
 		const fileResult = this.app.metadataCache.uniqueFileLookup.get(tmpFileLink);
 		
@@ -44,7 +36,6 @@ export default class ExtensionlessPlugin extends Plugin {
 		if (tmpFileLink === workingLink && 1 === fileResult.length)
 			return fileResult.slice();
 		let sourceDirName = this.dirname(sourceFile).toLowerCase();
-		let m;
 		if (workingLink.startsWith("./") || workingLink.startsWith("../")) {
 			if (workingLink.startsWith("./../") && (workingLink = workingLink.slice(2)), workingLink.startsWith("./")){
 				if ("" === sourceDirName) {
@@ -65,7 +56,7 @@ export default class ExtensionlessPlugin extends Plugin {
 			}
 			let a = 0, s = fileResult;
 			for (; a < s.length; a++) {
-				if ((m = (f = s[a]).path.toLowerCase()) === workingLink)
+				if ((f = s[a]).path.toLowerCase() === workingLink)
 					return [f]
 			}
 		}
@@ -74,7 +65,7 @@ export default class ExtensionlessPlugin extends Plugin {
 		}
 		let l = 0, c = fileResult
 		for (; l < c.length; l++) {
-			if ((m = (f = c[l]).path.toLowerCase()) === workingLink)
+			if ((f = c[l]).path.toLowerCase() === workingLink)
 				return [f]
 		}
 		if (link.startsWith("/"))
@@ -87,16 +78,17 @@ export default class ExtensionlessPlugin extends Plugin {
 				m.startsWith(sourceDirName) ? u.push(f) : h.push(f)
 			}
 		}
-		return u.sort(this.comparison_function),
-		h.sort(this.comparison_function),
+
+		const comparison_function = (file1: TAbstractFile, file2: TAbstractFile) => {
+			return file1.path.length - file2.path.length;
+		}
+
+		return u.sort(comparison_function),
+		h.sort(comparison_function),
 		u.concat(h)
 	}
 
 	overwrite_getLinkpathDest(link: string, source: string){
-
-		if (this.settings === undefined){
-			this.settings = DEFAULT_SETTINGS;
-		}
 
 		if (!this.settings.enable){
 			//@ts-ignore
@@ -156,44 +148,3 @@ export default class ExtensionlessPlugin extends Plugin {
 	}
 }
 
-class ExtensionlessSettingsTab extends PluginSettingTab {
-    plugin: ExtensionlessPlugin;
-
-    constructor(app: App, plugin: ExtensionlessPlugin) {
-        super(app, plugin);
-        this.plugin = plugin;
-    }
-
-    display() {
-        const { containerEl } = this;
-        containerEl.empty();
-
-        const header = containerEl.createEl('h2', {
-            text: 'Extensionless Settings'
-        });
-
-        new Setting(containerEl)
-            .setName('Enable Extensionless Links')
-            .setDesc('Enable or disable the link resolver overwrite.')
-            .addToggle(toggle => 
-                toggle
-                    .setValue(this.plugin.settings.enable)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enable = value;
-                        await this.plugin.saveSettings();
-                    })
-            );
-
-        new Setting(containerEl)
-            .setName('Find Markdown First')
-            .setDesc('Set if an extensionless link should search for a markdown file first. This is typically faster for normal links, but you cannot create a link to an extensionless file when there is a markdown file with the same name in the same folder. Requires reload to fully take effect.')
-            .addToggle(toggle => 
-                toggle
-                    .setValue(this.plugin.settings.markdownFirst)
-                    .onChange(async (value) => {
-                        this.plugin.settings.markdownFirst = value;
-                        await this.plugin.saveSettings();
-                    })
-            );
-    }
-}
