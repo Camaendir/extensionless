@@ -38,8 +38,8 @@ export class ExtensionlessSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Find markdown first')
-            .setDesc('Set if an extensionless link should search for a markdown file first. This is typically faster for normal links, but you cannot create a link to an extensionless file when there is a markdown file with the same name in the same folder. Requires reload to fully take effect.')
+            .setName('Find Markdown first')
+            .setDesc('Set if an extensionless link should search for a Markdown file first. . This is typically faster for normal links, but you cannot create a link to an extensionless file when there is a Markdown file with the same name in the same folder. Requires reload to fully take effect.')
             .addToggle(toggle => 
                 toggle
                     .setValue(this.plugin.settings.markdownFirst)
