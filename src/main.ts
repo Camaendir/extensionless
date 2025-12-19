@@ -75,7 +75,11 @@ export default class ExtensionlessPlugin extends Plugin {
 			let f  = d[p]
 			let m  = f.path.toLowerCase()
 			if (!m.endsWith(workingLink)) {
-				m.startsWith(sourceDirName) ? u.push(f) : h.push(f)
+				if (m.startsWith(sourceDirName)){
+					u.push(f);
+				}else{
+					h.push(f);
+				}
 			}
 		}
 
